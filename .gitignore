@@ -1,0 +1,10 @@
+/node_modules/
+/.env
+/.env.*
+!/.env.example
+/.pingroom/
+/.practice/
+/deck.json
+/config.json
+*.log
+.DS_Store

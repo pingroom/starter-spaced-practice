@@ -1,0 +1,21 @@
+{
+  "name": "pingroom-starter-spaced-practice",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Practice a versioned learning deck through phone questions with a deterministic review schedule.",
+  "type": "module",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "start": "node src/cli.js run",
+    "connect": "node src/cli.js connect",
+    "inspect": "node src/cli.js inspect",
+    "status": "node src/cli.js status",
+    "find-id": "node src/cli.js find",
+    "recover": "node src/cli.js recover",
+    "retry": "node src/cli.js retry",
+    "demo": "node src/demo.js",
+    "test": "node --test"
+  },
+  "dependencies": { "@pingroom/sdk": "0.6.0" },
+  "license": "MIT"
+}

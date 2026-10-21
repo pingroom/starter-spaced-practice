@@ -1,0 +1,24 @@
+{
+  "deckId": "developer-basics",
+  "version": 1,
+  "cards": [
+    {
+      "id": "read-request",
+      "prompt": "Which HTTP method is normally used to retrieve a resource?",
+      "options": [
+        { "value": "get", "label": "GET" },
+        { "value": "post", "label": "POST" }
+      ],
+      "correct": "get"
+    },
+    {
+      "id": "minute",
+      "prompt": "How many seconds are in one minute?",
+      "options": [
+        { "value": "sixty", "label": "60" },
+        { "value": "hundred", "label": "100" }
+      ],
+      "correct": "sixty"
+    }
+  ]
+}
