@@ -62,8 +62,8 @@ function validateObservation(observation, status, request) {
   if (status === 'pending') {
     if (observation.resolvedAt !== null) throw new Error('Pending Question has a resolution timestamp.');
   } else if (iso(observation.resolvedAt) !== observation.resolvedAt || observation.resolvedAt < observation.createdAt
-    || observation.resolvedAt > observation.expiresAt || Date.parse(observation.resolvedAt) > latest
-    || status === 'expired' && observation.resolvedAt !== observation.expiresAt) throw new Error('Invalid Question resolution time.');
+    || Date.parse(observation.resolvedAt) > latest
+    || (status === 'expired' ? observation.resolvedAt < observation.expiresAt : observation.resolvedAt > observation.expiresAt)) throw new Error('Invalid Question resolution time.');
   if (status === 'graded') {
     const answer = observation.answer;
     if (!keys(answer, ['value', 'label', 'responderId', 'answeredAt']) || answer.responderId !== request.target_user_id

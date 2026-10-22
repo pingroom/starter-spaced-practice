@@ -91,6 +91,72 @@ test('expired and cancelled are ungraded, paused, and require explicit retry', a
   }
 });
 
+test('delayed expiry pauses durably and explicit retry waits for run to send again', async (t) => {
+  const s = await setup(t); const started = await s.run();
+  s.clock.value = '2026-01-01T09:16:00.000Z';
+  s.api.terminal(started.questionId, 'expired');
+  s.api.questions.get(started.questionId).resolved_at = '2026-01-01T09:15:30.000Z';
+  const result = await s.run();
+  assert.equal(result.status, 'expired');
+  assert.equal(result.cards[0].paused, true); assert.equal(result.cards[0].lastResult, null);
+  const saved = await s.saved();
+  assert.equal(saved.attempts[0].status, 'expired');
+  assert.equal(saved.attempts[0].observation.resolvedAt, '2026-01-01T09:15:30.000Z');
+  const count = s.api.calls.length;
+  assert.equal((await localStatus(s.directory, s.options.deck)).cards[0].paused, true);
+  assert.equal((await s.run()).status, 'not_due'); assert.equal(s.api.calls.length, count);
+  const retried = await s.run({ command: 'retry', retryId: started.attemptId });
+  assert.equal(retried.status, 'retry_ready'); assert.equal(retried.cards[0].paused, false);
+  assert.equal(retried.cards[0].dueAt, s.clock.value);
+  await s.run({ command: 'retry', retryId: started.attemptId });
+  assert.equal(s.api.calls.length, count); assert.equal(sends(s.api), 1);
+  assert.equal((await s.run()).status, 'pending'); assert.equal(sends(s.api), 2);
+});
+
+test('expired resolution still rejects early and overly future times on read and saved replay', async (t) => {
+  for (const resolvedAt of ['2026-01-01T09:14:59.999Z', '2026-01-01T09:17:00.001Z']) {
+    const s = await setup(t); const started = await s.run();
+    s.clock.value = '2026-01-01T09:16:00.000Z';
+    s.api.terminal(started.questionId, 'expired');
+    const q = s.api.questions.get(started.questionId); q.resolved_at = resolvedAt;
+    const before = await readFile(join(s.directory, 'state.json'), 'utf8');
+    await assert.rejects(s.run(), /resolution time/);
+    assert.equal(await readFile(join(s.directory, 'state.json'), 'utf8'), before);
+    assert.equal(sends(s.api), 1);
+    q.resolved_at = q.expires_at; await s.run();
+    const state = await s.saved(); state.attempts[0].observation.resolvedAt = resolvedAt;
+    await atomicJson(s.directory, 'state.json', state);
+    const count = s.api.calls.length;
+    await assert.rejects(localStatus(s.directory, s.options.deck), /resolution time/);
+    await assert.rejects(s.run(), /resolution time/);
+    assert.equal(s.api.calls.length, count);
+  }
+});
+
+test('delayed expiry retains the documented sixty-second clock tolerance', async (t) => {
+  const s = await setup(t); const started = await s.run();
+  s.clock.value = '2026-01-01T09:16:00.000Z';
+  s.api.terminal(started.questionId, 'expired');
+  s.api.questions.get(started.questionId).resolved_at = '2026-01-01T09:17:00.000Z';
+  assert.equal((await s.run()).status, 'expired'); assert.equal(sends(s.api), 1);
+});
+
+test('graded, cancelled and invalid-answer resolutions remain bounded by the deadline', async (t) => {
+  for (const terminal of ['graded', 'cancelled', 'invalid_answer']) {
+    const s = await setup(t); const started = await s.run();
+    s.clock.value = '2026-01-01T09:16:00.000Z';
+    if (terminal === 'cancelled') s.api.terminal(started.questionId, 'cancelled');
+    else {
+      s.api.answer(started.questionId, 'get');
+      if (terminal === 'invalid_answer') s.api.questions.get(started.questionId).answer.responder = null;
+    }
+    const before = await readFile(join(s.directory, 'state.json'), 'utf8');
+    await assert.rejects(s.run(), /resolution time/);
+    assert.equal(await readFile(join(s.directory, 'state.json'), 'utf8'), before);
+    assert.equal(sends(s.api), 1);
+  }
+});
+
 test('wrong responder, redacted identity, typed reply and unknown option never count as incorrect', async (t) => {
   for (const modify of [
     (q) => { q.answer.responder.id = OTHER; }, (q) => { q.answer.responder = null; },
