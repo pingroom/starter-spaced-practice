@@ -39,7 +39,9 @@ Install [PingRoom](https://pingroom.io/i), approve the printed pairing link, and
 }
 ```
 
-Replace the sample UUID. Pairing credentials stay in ignored `.pingroom/credentials.json`. Interrupted pairing reuses its saved link; an existing connection is not overwritten. After a saved link expires, confirm it is unusable before removing only `.pingroom/pairing.json` and reconnecting.
+Replace the sample UUID. Pairing credentials stay in ignored `.pingroom/credentials.json`. Setup saves private creation intent before registering a robot. A lost registration or pairing response leaves uncertain state and blocks repeated setup. Keep `.pingroom/pairing.json`, inspect Connected Agents, and resolve or revoke any created robot before archiving that file for an intentional new setup. Follow the same recovery when a link expires; preserve practice evidence and original credentials.
+
+Pending setup reuses its saved link and remaining lifetime; an existing connection is never overwritten. The optional browser link falls back to `pair_url`. Only HTTPS links on `pingroom.io` or `api.pingroom.io` without embedded credentials are accepted.
 
 For an existing connection or unattended run, supply both `PINGROOM_TOKEN` and `PINGROOM_ROOM` in `.env` or the process environment. A complete pair overrides saved credentials; blank or partial overrides fail. Shell values take precedence over `.env`. All files resolve relative to this project, even when launched from another directory.
 
